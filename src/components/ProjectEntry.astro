@@ -312,6 +312,17 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
     .project {
       grid-template-columns: 1fr;
       align-items: stretch;
+      /* Desktop puts the scroll-snap target on .project__gallery itself
+         (below) because the label sits beside it, in the same row, so
+         snapping the gallery into place always keeps the label in view
+         too. Stacked on mobile, the label sits above the gallery — if
+         the gallery is still the snap target, settling scroll snaps the
+         *image* to just below the band and shoves the label (title +
+         subtitle) up behind it, invisible and untappable. Moving the
+         snap target to the whole article instead keeps the title always
+         the thing that lands below the band, on both a scroll-snap
+         settle and a #first-project anchor jump. */
+      scroll-snap-align: start;
     }
 
     .project__label {
@@ -321,6 +332,23 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
 
     .project__gallery {
       margin-inline: auto;
+      scroll-snap-align: none;
+    }
+
+    /* The vertical sidebar treatment only works with the left margin
+       column desktop has beside the gallery — that margin is gone here
+       (the gallery runs edge-to-edge), so there's nowhere for rotated
+       text to sit without overflowing off-screen. Falls back to a
+       normal horizontal caption line under the image instead;
+       projectSpacing.ts skips its left/bottom positioning math at this
+       width and leaves it to this static, normal-flow layout. */
+    .project__credits {
+      position: static;
+      writing-mode: horizontal-tb;
+      transform: none;
+      white-space: normal;
+      font-size: var(--fs-meta);
+      margin: 0.5rem var(--gutter) 0;
     }
   }
 

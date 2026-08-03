@@ -19,14 +19,23 @@
 // and the next begins (e.g. waiting for wheel events to go quiet) is
 // fragile — momentum tails and quick successive swipes can both defeat
 // it. Instead: the first wheel event triggers exactly one step and
-// locks out *all* wheel input, unconditionally, for a fixed cooldown —
-// long enough to outlast a real swipe's momentum tail. That guarantees
-// at most one step per cooldown window no matter how many wheel events
-// arrive or why; the only cost is that two deliberate swipes thrown
-// back-to-back faster than the cooldown will merge into one, which is a
-// far better failure mode than a single swipe flying through the deck.
+// locks out *all* wheel input, unconditionally, until the resulting
+// smooth scroll has actually finished (the native 'scrollend' event) —
+// that guarantees at most one step per gesture no matter how many wheel
+// events arrive or why, and unlike a fixed-duration timer, it can never
+// expire early. A fixed timer raced the real animation: a tall
+// project's smooth scroll can take longer to settle than a guessed
+// cooldown, and a late momentum-tail event sneaking in after the timer
+// expired but before the scroll had actually arrived would recalculate
+// mid-flight — from wherever it happened to be at that instant, not
+// from the real destination — which is what made a single deliberate
+// swipe intermittently feel like it "didn't take" and needed a second
+// one. FALLBACK_COOLDOWN_MS is just a safety net for browsers without
+// 'scrollend' support (or the rare case goToStep didn't scroll at all,
+// e.g. already at the last project, so 'scrollend' never fires) — it
+// should essentially never be what actually unlocks things.
 
-const COOLDOWN_MS = 1100;
+const FALLBACK_COOLDOWN_MS = 2000;
 
 function getSnapPoints(): HTMLElement[] {
   const spacer = document.querySelector<HTMLElement>('[data-intro-spacer]');
@@ -59,6 +68,14 @@ function goToStep(direction: 1 | -1) {
 }
 
 let locked = false;
+let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+
+function unlock() {
+  locked = false;
+  clearTimeout(fallbackTimer);
+}
+
+window.addEventListener('scrollend', unlock);
 
 window.addEventListener(
   'wheel',
@@ -69,9 +86,7 @@ window.addEventListener(
 
     locked = true;
     goToStep(event.deltaY > 0 ? 1 : -1);
-    setTimeout(() => {
-      locked = false;
-    }, COOLDOWN_MS);
+    fallbackTimer = setTimeout(unlock, FALLBACK_COOLDOWN_MS);
   },
   { passive: false },
 );

@@ -86,5 +86,26 @@ const { subject, qualifier, date, bullets = [] } = Astro.props;
       align-items: flex-start;
       gap: 0.25rem;
     }
+
+    /* At the large desktop size (1.7x --fs-lead), a longer date string
+       like "Graduating December 2026" is wider than an entire phone
+       screen — nowrap kept it from ever wrapping, so it just ran off
+       the right edge. That overflow was wide enough to push out the
+       page's whole effective viewport width, which is what was also
+       throwing off the fixed-position nav on this page. Shrinking the
+       date and letting it wrap (as a safety net for even longer dates)
+       fixes both. */
+    .entry__date {
+      font-size: var(--fs-lead);
+      white-space: normal;
+    }
+
+    .entry__bullets p {
+      /* 50% of a phone-width column is a cramped, heavily-wrapped
+         sliver of text — the desktop-only reason for that cap (keeping
+         a long line of body text readable) doesn't apply once the
+         column itself is already narrow. */
+      max-width: 100%;
+    }
   }
 </style>

@@ -146,4 +146,22 @@ import { synopsis, experience, education, skills, service, music, awards, contac
   .contact-line:last-child {
     margin-bottom: 0;
   }
+
+  @media (max-width: 700px) {
+    /* The absolute top-right position only works because it has 50%-wide
+       synopsis text to sit clear of (see .synopsis below) — once that
+       text runs full-width there's nowhere for it to float without
+       overlapping the first line, so it drops into normal flow as its
+       own right-aligned line above the synopsis instead. */
+    .print-resume-link {
+      position: static;
+      display: block;
+      text-align: right;
+      margin: 0 0 1rem;
+    }
+
+    .synopsis {
+      max-width: 100%;
+    }
+  }
 </style>

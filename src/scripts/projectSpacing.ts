@@ -43,7 +43,17 @@ function apply() {
     project.style.marginBottom = `${Math.max(needed, baseMargin)}px`;
 
     const credits = project.querySelector<HTMLElement>('.project__credits');
-    if (credits) {
+    // Below 700px, ProjectEntry.astro's own media query takes over
+    // (a plain static caption line — there's no left margin column left
+    // to position a vertical sidebar into once the gallery goes
+    // edge-to-edge). Clearing any inline left/bottom left over from a
+    // wider viewport matters too: inline styles beat a stylesheet media
+    // query, so without this a resize from desktop down to mobile would
+    // leave the credits stuck at their last desktop position.
+    if (credits && window.innerWidth <= 700) {
+      credits.style.left = '';
+      credits.style.bottom = '';
+    } else if (credits) {
       const projectRect = project.getBoundingClientRect();
       // credits is positioned by its own left edge, so its rendered
       // width (its "thickness" as a column of vertical text) has to be
