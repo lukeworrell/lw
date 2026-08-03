@@ -1,0 +1,31 @@
+---
+import SiteHeader from '../components/SiteHeader.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  deferHeaderReveal?: boolean;
+}
+
+const { title, deferHeaderReveal = false } = Astro.props;
+
+// It's the only place your name is defined, used as both the landing
+// headline and the fixed band label everywhere.
+const siteName = 'Luke Worrell';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <SiteHeader name={siteName} deferReveal={deferHeaderReveal} />
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>

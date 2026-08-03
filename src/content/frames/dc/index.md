@@ -1,0 +1,25 @@
+---
+category: dc
+label: "Washington, D.C."
+images:
+  - src: "./01.jpg"
+    alt: "Washington, D.C. photograph, 1 of 10"
+  - src: "./02.jpg"
+    alt: "Washington, D.C. photograph, 2 of 10"
+  - src: "./03.jpg"
+    alt: "Washington, D.C. photograph, 3 of 10"
+  - src: "./04.jpg"
+    alt: "Washington, D.C. photograph, 4 of 10"
+  - src: "./05.jpg"
+    alt: "Washington, D.C. photograph, 5 of 10"
+  - src: "./06.jpg"
+    alt: "Washington, D.C. photograph, 6 of 10"
+  - src: "./07.jpg"
+    alt: "Washington, D.C. photograph, 7 of 10"
+  - src: "./08.jpg"
+    alt: "Washington, D.C. photograph, 8 of 10"
+  - src: "./09.jpg"
+    alt: "Washington, D.C. photograph, 9 of 10"
+  - src: "./10.jpg"
+    alt: "Washington, D.C. photograph, 10 of 10"
+---

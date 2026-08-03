@@ -1,0 +1,149 @@
+---
+// Resume content — Synopsis, Experience, Education, Skills, Music,
+// Service, Awards, and Contact. Experience/Education/Music/Service/
+// Awards all share the ResumeEntry component (subject/qualifier/date +
+// bullets); Skills and Contact are structurally different (no dates),
+// so they're markup unique to this page.
+//
+// The actual data lives in src/data/resume.ts, shared with
+// resume-print.astro (the source for public/resume.pdf) so the
+// downloadable PDF and this page never drift apart.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ResumeEntry from '../components/ResumeEntry.astro';
+import { synopsis, experience, education, skills, service, music, awards, contact } from '../data/resume';
+---
+
+<BaseLayout title="Luke Worrell — About">
+  <div class="page about">
+    <div class="resume">
+      <a class="print-resume-link" href="/resume.pdf" target="_blank" rel="noopener" download="Luke-Worrell-Resume.pdf">
+        print my resume
+      </a>
+      <p class="synopsis">{synopsis}</p>
+
+      <section class="section">
+        <p class="section__label">Experience</p>
+        {experience.map((entry) => <ResumeEntry {...entry} />)}
+      </section>
+
+      <section class="section">
+        <p class="section__label">Education</p>
+        {education.map((entry) => <ResumeEntry {...entry} />)}
+      </section>
+
+      <section class="section">
+        <p class="section__label">Skills</p>
+        {
+          skills.map((group) => (
+            <div class="skill-group">
+              <p class="skill-group__label">{group.label}</p>
+              <p class="skill-group__items">{group.items}</p>
+            </div>
+          ))
+        }
+      </section>
+
+      <section class="section">
+        <p class="section__label">Service</p>
+        {service.map((entry) => <ResumeEntry {...entry} />)}
+      </section>
+
+      <section class="section">
+        <p class="section__label">Music</p>
+        {music.map((entry) => <ResumeEntry {...entry} />)}
+      </section>
+
+      <section class="section">
+        <p class="section__label">Awards</p>
+        {awards.map((entry) => <ResumeEntry {...entry} />)}
+      </section>
+
+      <section class="section">
+        <p class="section__label">Contact</p>
+        <p class="contact-line">{contact.email}</p>
+      </section>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .resume {
+    position: relative;
+  }
+
+  /* Top right of the page, inlined with the top of the synopsis below —
+     .resume's own top edge is the synopsis's top edge, since synopsis is
+     its first child. */
+  .print-resume-link {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: var(--fs-body);
+    font-style: italic;
+    color: var(--color-fg-muted);
+  }
+
+  .print-resume-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .synopsis {
+    max-width: 50%;
+    font-size: calc(var(--fs-lead) * 1.25);
+    line-height: 1.5;
+    color: var(--color-fg);
+    margin: 0 0 var(--section-gap);
+  }
+
+  .section {
+    margin-bottom: clamp(2rem, 6vw, 4rem);
+  }
+
+  .section:last-child {
+    margin-bottom: 0;
+  }
+
+  .section__label {
+    font-size: var(--fs-meta);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-fg-muted);
+    margin: 0 0 1.1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e2e2e2;
+  }
+
+  .skill-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .skill-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .skill-group__label {
+    /* Matches the size used for company/university names (ResumeEntry's
+       .entry__qualifier). */
+    font-size: calc(var(--fs-lead) * 1.5);
+    font-weight: 400;
+    color: var(--color-fg-muted);
+    margin: 0;
+  }
+
+  .skill-group__items {
+    font-size: var(--fs-body);
+    color: var(--color-fg);
+    margin: 0.35rem 0 0;
+  }
+
+  .contact-line {
+    font-size: var(--fs-body);
+    color: var(--color-fg-muted);
+    margin: 0 0 0.35rem;
+  }
+
+  .contact-line:last-child {
+    margin-bottom: 0;
+  }
+</style>

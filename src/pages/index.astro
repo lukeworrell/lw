@@ -1,0 +1,192 @@
+---
+import { getCollection } from 'astro:content';
+import { Picture } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProjectEntry from '../components/ProjectEntry.astro';
+import { workCategories } from '../content.config';
+
+const allProjects = await getCollection('work');
+
+// Fixed display order, not alphabetical or chronological — earliest work
+// (high school) goes last, per the spec. Category headings aren't shown
+// right now, but this order still controls the sequence projects appear
+// in (and therefore which one is "Project 1").
+const projects = workCategories.flatMap((category) =>
+  allProjects
+    .filter((p) => p.data.category === category)
+    .sort((a, b) => b.data.year - a.data.year),
+);
+
+// One entry per project, in the same order as the feed below — the hero
+// gallery lets you loop through each project's own first image before
+// ever scrolling. Whichever one you're looking at when you scroll away
+// becomes the project the intro shrinks into: introHero.ts moves its
+// real <article> to the front of .feed and retargets the shrink
+// animation at it, so the handoff always lands on the image that's
+// actually showing, not always Project 1.
+//
+// Temporarily limited to the first two projects (College of Architecture,
+// Bubble-vilion) — their cover images are the ones known-good right now.
+// Everything else about the loop/swipe function is unchanged; this just
+// shrinks the data set it cycles through. Change back to
+// `projects.map(...)` once the rest are ready to feature here too.
+const heroImages = projects.slice(0, 2).map((project) => project.data.images[0]);
+---
+
+<BaseLayout title="Luke Worrell — Work" deferHeaderReveal>
+  <!-- Intro: fullscreen, click-through, looping gallery of every
+       project's first image (see projectGallery.ts, which drives any
+       [data-gallery] generically — the prev/next zones and chevron
+       cursors are the same ones used by each project's own gallery). As
+       you scroll through the spacer below, introHero.ts shrinks the
+       whole thing down to exactly overlay whichever project's real
+       gallery box matches what's currently showing, then hides it —
+       handing off to that real element. See introHero.ts for how that
+       project becomes "first". -->
+  <div class="intro-spacer" data-intro-spacer aria-hidden="true"></div>
+  <div class="intro gallery" data-intro data-gallery data-loop aria-hidden="true">
+    {
+      heroImages.map((img, i) => (
+        <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-index={i}>
+          <Picture
+            src={img.src}
+            alt=""
+            formats={['avif', 'webp']}
+            widths={[480, 800, 1200, 1600, 2000, 2400]}
+            sizes="100vw"
+            loading={i === 0 ? 'eager' : 'lazy'}
+            fetchpriority={i === 0 ? 'high' : undefined}
+            decoding="async"
+            class="intro__image"
+          />
+        </div>
+      ))
+    }
+    <button type="button" class="gallery__zone gallery__zone--prev" data-gallery-prev aria-label="Previous project" />
+    <button type="button" class="gallery__zone gallery__zone--next" data-gallery-next aria-label="Next project" />
+  </div>
+
+  <div class="feed">
+    {
+      projects.map((project, i) => (
+        <ProjectEntry
+          project={project}
+          eagerFirstImage={i === 0}
+          initiallyLocked={i === 0}
+          id={i === 0 ? 'first-project' : undefined}
+          heroIndex={i}
+        />
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<script>
+  import '../scripts/projectGallery.ts';
+  import '../scripts/introHero.ts';
+  import '../scripts/projectSpacing.ts';
+  import '../scripts/scrollPaging.ts';
+</script>
+
+<style>
+  /* Scroll snap: as you scroll from one project to the next, the page
+     settles with that project's image fully in frame instead of
+     stopping halfway through it. Scoped to this page only (via
+     :global(html), which only ships in this page's own stylesheet) so
+     /frames and /about — which have nothing to snap to — aren't
+     affected. The intro spacer is also a snap point (the very top of
+     the page), so small scrolls during the landing sequence settle back
+     to the top or forward to Project 1, rather than stopping in an
+     undefined spot mid-transition. */
+  :global(html) {
+    scroll-snap-type: y mandatory;
+  }
+
+  /* Basic clearance below the fixed band — content after the intro
+     resumes normal breathing room, not a transition buffer. */
+  .feed {
+    padding-top: calc(var(--band-height) + var(--gutter));
+  }
+
+  .intro-spacer {
+    height: 100vh;
+    scroll-snap-align: start;
+  }
+
+  .intro {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--color-bg);
+    z-index: 20; /* above page content, below the band/name/nav (40/50) */
+  }
+
+  .intro.is-done {
+    visibility: hidden;
+  }
+
+  /* Frame stacking for the hero gallery — same pattern as each project's
+     own gallery (ProjectEntry.astro), duplicated here since Astro scopes
+     styles per-component. Only the active frame is visible; the rest
+     stay laid out (never display: none) so their images can prefetch. */
+  .intro .gallery__frame {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .intro .gallery__frame.is-active {
+    visibility: visible;
+  }
+
+  /* .gallery__frame.is-active sets visibility: visible directly on
+     itself, which otherwise wins over the hidden state inherited from
+     .intro.is-done above (visibility is inherited, but a descendant's
+     own explicit value overrides it) — without this, the currently
+     shown hero image stayed stuck on screen after scrolling past it
+     into later projects, instead of actually hiding along with the rest
+     of .intro. This rule is more specific, so it wins instead, keeping
+     the active frame hidden once the intro is done. Same fix as
+     .project__gallery.is-locked uses in ProjectEntry.astro. */
+  .intro.is-done .gallery__frame.is-active {
+    visibility: hidden;
+  }
+
+  .intro__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Click zones: right half advances, left half goes back — same chevron
+     cursors as every other gallery on the site. */
+  .intro .gallery__zone {
+    position: absolute;
+    inset: 0 50% 0 0;
+    background: transparent;
+    z-index: 1;
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTggNiBMOSAxNCBMMTggMjInIGZpbGw9J25vbmUnIHN0cm9rZT0nYmxhY2snIHN0cm9rZS13aWR0aD0nMi41JyBzdHJva2UtbGluZWNhcD0ncm91bmQnIHN0cm9rZS1saW5lam9pbj0ncm91bmQnLz48L3N2Zz4K')
+      14 14,
+      auto;
+  }
+
+  .intro .gallery__zone--next {
+    inset: 0 0 0 50%;
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTAgNiBMMTkgMTQgTDEwIDIyJyBmaWxsPSdub25lJyBzdHJva2U9J2JsYWNrJyBzdHJva2Utd2lkdGg9JzIuNScgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJyBzdHJva2UtbGluZWpvaW49J3JvdW5kJy8+PC9zdmc+Cg==')
+      14 14,
+      auto;
+  }
+
+  .intro .gallery__zone:disabled {
+    cursor: default;
+    pointer-events: none;
+  }
+</style>

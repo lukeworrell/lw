@@ -1,0 +1,289 @@
+---
+// Six distinct category blocks, each its own CSS-columns masonry, so
+// categories never interleave. Column-fill always starts at the top of
+// column 1, so whatever is first in a category's images array is
+// guaranteed to render at the top of the page — that's how specific
+// photos can be pinned there by reordering the content file, without
+// needing a different layout technique. A small grey label sits above
+// each block's grid.
+import { getCollection } from 'astro:content';
+import { Picture, getImage } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { frameCategories } from '../content.config';
+
+const allFrames = await getCollection('frames');
+const orderedEntries = frameCategories
+  .map((slug) => allFrames.find((entry) => entry.id === slug))
+  .filter((entry) => entry !== undefined);
+
+// Only the first handful of thumbnails (roughly a first screenful) load
+// eagerly; everything else is lazy — essential with 62 photos on one page.
+const EAGER_COUNT = 6;
+let globalIndex = 0;
+
+const clusters = await Promise.all(
+  orderedEntries.map(async (entry) => {
+    const photos = await Promise.all(
+      entry.data.images.map(async (img) => {
+        const index = globalIndex++;
+        const ratio = img.src.width / img.src.height;
+        // Precomputed at build time, only fetched by the browser the
+        // moment a photo is actually clicked open (see
+        // framesLightbox.ts) — never downloaded upfront. No AVIF here
+        // deliberately: at 1800px it encodes roughly 5-6x slower than
+        // WebP, which made every dev-mode click take several seconds
+        // (production pre-generates everything, so this only ever cost
+        // real time locally, not for visitors) — WebP is still very
+        // well compressed, so the trade-off wasn't worth it for a
+        // single enlarged view.
+        const [webp, jpg] = await Promise.all([
+          getImage({ src: img.src, format: 'webp', width: 1800 }),
+          getImage({ src: img.src, format: 'jpeg', width: 1800 }),
+        ]);
+        return {
+          img,
+          ratio,
+          eager: index < EAGER_COUNT,
+          full: { webp: webp.src, jpg: jpg.src },
+        };
+      }),
+    );
+    return { label: entry.data.label, photos };
+  }),
+);
+---
+
+<BaseLayout title="Luke Worrell — Frames">
+  <div class="page frames">
+    {
+      clusters.map((cluster) => (
+        <section class="cluster">
+          <p class="cluster__label">{cluster.label}</p>
+          <div class="grid">
+            {cluster.photos.map((photo) => (
+              <button
+                type="button"
+                class="photo"
+                data-photo
+                data-full-webp={photo.full.webp}
+                data-full-jpg={photo.full.jpg}
+                data-ratio={photo.ratio}
+                data-alt={photo.img.alt}
+                data-label={photo.img.caption ?? cluster.label}
+              >
+                <Picture
+                  src={photo.img.src}
+                  alt={photo.img.alt}
+                  formats={['avif', 'webp']}
+                  widths={[300, 500, 700, 900]}
+                  sizes="(max-width: 700px) 45vw, (max-width: 1100px) 30vw, 22vw"
+                  loading={photo.eager ? 'eager' : 'lazy'}
+                  decoding="async"
+                  class="photo__image"
+                />
+              </button>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </div>
+
+  <dialog class="lightbox" data-lightbox aria-label="Enlarged photo. Click the right or left half to move between photos, Escape or click outside to close.">
+    <figure class="lightbox__figure">
+      <div class="lightbox__viewer" data-lightbox-viewer>
+        <picture>
+          <source data-lightbox-webp type="image/webp" />
+          <img data-lightbox-img alt="" />
+        </picture>
+        <button type="button" class="lightbox__zone lightbox__zone--prev" data-lightbox-prev aria-label="Previous photo" />
+        <button type="button" class="lightbox__zone lightbox__zone--next" data-lightbox-next aria-label="Next photo" />
+      </div>
+      <figcaption class="lightbox__caption" data-lightbox-caption />
+    </figure>
+  </dialog>
+</BaseLayout>
+
+<script>
+  import '../scripts/framesLightbox.ts';
+  import '../scripts/framePhotoReveal.ts';
+</script>
+
+<style>
+  .cluster {
+    margin-bottom: 0.5rem;
+  }
+
+  .cluster:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Its own line above the grid — every photo, including the first,
+     lines up flush against the same top edge. */
+  .cluster__label {
+    font-size: var(--fs-meta);
+    color: var(--color-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 0.75rem;
+  }
+
+  /* Column masonry: fixed-width columns running top-to-bottom, each
+     photo keeping its own aspect ratio (so height varies within a
+     column). Column-fill always starts at the top of column 1, so
+     whatever is first in a cluster's images array is guaranteed to
+     render at the top of the page — that's how the priority NYC photos
+     stay pinned there without needing a different layout technique. */
+  .grid {
+    column-count: 4;
+    column-gap: calc(var(--gutter) / 4);
+  }
+
+  @media (max-width: 1100px) {
+    .grid {
+      column-count: 3;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .grid {
+      column-count: 2;
+    }
+  }
+
+  .photo {
+    display: block;
+    width: 100%;
+    margin: 0 0 calc(var(--gutter) / 4);
+    break-inside: avoid;
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTQgNiBMMTQgMjIgTTYgMTQgTDIyIDE0JyBmaWxsPSdub25lJyBzdHJva2U9J2JsYWNrJyBzdHJva2Utd2lkdGg9JzInIHN0cm9rZS1saW5lY2FwPSdyb3VuZCcvPjwvc3ZnPgo=')
+      14 14,
+      pointer;
+  }
+
+  .photo__image {
+    width: 100%;
+    height: auto;
+    display: block;
+    /* Slight grow-and-fade as each thumbnail finishes loading — the box
+       is already the right size (from its intrinsic aspect ratio), so
+       this reads as the image filling in the space it already occupies,
+       not a layout shift. */
+    opacity: 0;
+    transform: scale(0.96);
+    transition:
+      opacity 0.5s ease,
+      transform 0.5s ease;
+  }
+
+  .photo__image.is-loaded {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .photo__image {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+
+  /* ---- Lightbox -------------------------------------------------------
+     A high-opacity (not fully opaque) white film over the grid — photos
+     underneath are sensed as vague fields of tone, not legible. No
+     backdrop-filter/blur: blurring 60+ images live risks jank on
+     lower-end machines, and a plain overlay reads nearly as "felt but not
+     erased" without that cost. */
+  .lightbox {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    max-width: none;
+    max-height: none;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    /* The "get me out of here" cursor for everywhere that isn't the
+       photo itself — the two zones below (which fully cover the photo)
+       override this with their own left/right cursors. */
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNOCA4IEwyMCAyMCBNMjAgOCBMOCAyMCcgZmlsbD0nbm9uZScgc3Ryb2tlPSdibGFjaycgc3Ryb2tlLXdpZHRoPScyJyBzdHJva2UtbGluZWNhcD0ncm91bmQnLz48L3N2Zz4K')
+      14 14,
+      pointer;
+  }
+
+  .lightbox[open] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox::backdrop {
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  .lightbox__figure {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .lightbox__viewer {
+    position: relative;
+    aspect-ratio: var(--ratio, 1.5);
+    /* A box sized only by aspect-ratio + max-width/max-height has no
+       definite width to size from — its children (set to 100%/100%)
+       then have nothing real to fill, and collapse to zero. Deriving an
+       explicit width from the height cap (same min() technique as the
+       work page's galleries) gives it a real, non-circular size. */
+    width: min(90vw, calc(82vh * var(--ratio, 1.5)));
+    max-height: 82vh;
+  }
+
+  .lightbox__viewer picture {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .lightbox__viewer img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* Right half advances, left half goes back — same left/right-half
+     click zones and chevron cursors as the work page's galleries, laid
+     over the full photo so there's no gap where the "outside" (close)
+     cursor from .lightbox leaks through. */
+  .lightbox__zone {
+    position: absolute;
+    inset: 0 50% 0 0;
+    background: transparent;
+    z-index: 1;
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTggNiBMOSAxNCBMMTggMjInIGZpbGw9J25vbmUnIHN0cm9rZT0nYmxhY2snIHN0cm9rZS13aWR0aD0nMi41JyBzdHJva2UtbGluZWNhcD0ncm91bmQnIHN0cm9rZS1saW5lam9pbj0ncm91bmQnLz48L3N2Zz4K')
+      14 14,
+      pointer;
+  }
+
+  .lightbox__zone--next {
+    inset: 0 0 0 50%;
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTAgNiBMMTkgMTQgTDEwIDIyJyBmaWxsPSdub25lJyBzdHJva2U9J2JsYWNrJyBzdHJva2Utd2lkdGg9JzIuNScgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJyBzdHJva2UtbGluZWpvaW49J3JvdW5kJy8+PC9zdmc+Cg==')
+      14 14,
+      pointer;
+  }
+
+  .lightbox__zone:disabled {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .lightbox__caption {
+    margin-top: 0.75rem;
+    text-align: center;
+    font-size: var(--fs-meta);
+    color: var(--color-fg-muted);
+  }
+</style>

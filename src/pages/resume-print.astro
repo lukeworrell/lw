@@ -1,0 +1,240 @@
+---
+// Standalone print-only rendering of the resume — the page
+// scripts/generate-resume-pdf.mjs loads and renders to
+// public/resume.pdf via Playwright. Deliberately doesn't use
+// BaseLayout: no nav, no site header/band, no screen-oriented
+// responsive sizing, just a clean fixed-size document.
+//
+// Experience/Education/Awards/Skills are pulled from src/data/resume.ts
+// (the same source about.astro reads from) since their content is
+// identical between the on-page resume and this PDF. The synopsis and
+// Music section are deliberately omitted here, and Leadership below is
+// a tightened, print-only rewrite of the on-page Service section — a
+// printed resume reads differently than a personal site, so this page
+// intentionally diverges from about.astro rather than sharing every
+// field.
+//
+// Page size/margins are set by the Playwright script's page.pdf()
+// options (format: 'Letter'), not CSS @page, so there's a single place
+// that controls the physical document dimensions.
+import '@fontsource/be-vietnam-pro/400.css';
+import '@fontsource/be-vietnam-pro/700.css';
+import type { ResumeEntryData } from '../data/resume';
+import { name, experience, education, skills, awards, contact } from '../data/resume';
+
+const leadership: ResumeEntryData[] = [
+  {
+    subject: 'Worship Team Member',
+    qualifier: 'Restoration Church Bryan',
+    date: '2024 – Present',
+    bullets: ["Play cajon with the church's worship team for Sunday services and Worship Nights."],
+  },
+  {
+    subject: 'Volunteer Leader',
+    qualifier: 'Refuge, Restoration Church Bryan',
+    date: '2025',
+    bullets: ['Lead a weekly after-school program for underprivileged children — play, meals, and mentorship.'],
+  },
+];
+
+const sections: { label: string; entries: ResumeEntryData[] }[] = [
+  { label: 'Experience', entries: experience },
+  { label: 'Education', entries: education },
+  { label: 'Leadership', entries: leadership },
+  { label: 'Awards', entries: awards },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{name} — Resume</title>
+  </head>
+  <body>
+    <main>
+      <header class="header">
+        <h1 class="name">{name}</h1>
+        <div class="contact">
+          <p>{contact.phone}</p>
+          <p>{contact.email}</p>
+        </div>
+      </header>
+
+      {
+        sections.map((section) => (
+          <section class="section">
+            <p class="section__label">{section.label}</p>
+            {section.entries.map((entry) => (
+              <div class="entry">
+                <div class="entry__header">
+                  <div>
+                    <p class="entry__subject">{entry.subject}</p>
+                    {entry.qualifier && <p class="entry__qualifier">{entry.qualifier}</p>}
+                  </div>
+                  <p class="entry__date">{entry.date}</p>
+                </div>
+                {entry.bullets && entry.bullets.length > 0 && (
+                  <div class="entry__bullets">
+                    {entry.bullets.map((bullet) => (
+                      <p>{bullet}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </section>
+        ))
+      }
+
+      <section class="section section--last">
+        <p class="section__label">Skills</p>
+        {
+          skills.map((group) => (
+            <div class="skill-group">
+              <p class="skill-group__label">{group.label}</p>
+              <p class="skill-group__items">{group.items}</p>
+            </div>
+          ))
+        }
+      </section>
+    </main>
+  </body>
+</html>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    color: #0a0a0a;
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-weight: 400;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    /* flex-start (not baseline) so the top of the contact block lines
+       up with the top of the name, instead of the name's much larger
+       baseline pulling the contact lines down to meet it. */
+    align-items: flex-start;
+    margin-bottom: 19pt;
+  }
+
+  .name {
+    font-size: 30pt;
+    font-weight: 700;
+    line-height: 1;
+    margin: 0;
+  }
+
+  .contact {
+    text-align: right;
+  }
+
+  .contact p {
+    font-size: 10pt;
+    color: #6b6b6b;
+    margin: 0 0 2pt;
+  }
+
+  .contact p:last-child {
+    margin-bottom: 0;
+  }
+
+  .section {
+    margin-bottom: 15pt;
+    break-inside: avoid;
+  }
+
+  .section--last {
+    margin-bottom: 0;
+  }
+
+  .section__label {
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #0a0a0a;
+    margin: 0 0 8pt;
+    padding-bottom: 4pt;
+    border-bottom: 0.75pt solid #d8d8d8;
+  }
+
+  .entry {
+    margin-bottom: 9pt;
+    break-inside: avoid;
+  }
+
+  .entry:last-child {
+    margin-bottom: 0;
+  }
+
+  .entry__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10pt;
+  }
+
+  .entry__subject {
+    font-size: 13pt;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .entry__qualifier {
+    font-size: 10pt;
+    font-weight: 400;
+    color: #6b6b6b;
+    margin: 2pt 0 0;
+  }
+
+  .entry__date {
+    font-size: 10pt;
+    font-weight: 400;
+    color: #6b6b6b;
+    white-space: nowrap;
+    margin: 0;
+    flex-shrink: 0;
+    /* Every date sits in this same flush-right position regardless of
+       how wide the subject/qualifier column on the left is — a single
+       consistent right-aligned column down the page. */
+    text-align: right;
+  }
+
+  .entry__bullets p {
+    font-size: 10pt;
+    line-height: 1.4;
+    max-width: 100%;
+    margin: 4pt 0 0;
+  }
+
+  .skill-group {
+    margin-bottom: 9pt;
+  }
+
+  .skill-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .skill-group__label {
+    font-size: 11pt;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .skill-group__items {
+    font-size: 10pt;
+    color: #6b6b6b;
+    margin: 2pt 0 0;
+  }
+</style>

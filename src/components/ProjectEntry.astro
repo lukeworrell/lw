@@ -1,0 +1,370 @@
+---
+// The one component the entire work feed renders. Adding a project never
+// touches this file — it only means adding a folder under
+// src/content/work/ with an index.md and its images.
+//
+// Layout: a fixed-width left margin (label only) beside a full-bleed
+// gallery that runs to the right edge of the screen. The gallery's box
+// is locked to the aspect ratio of the project's first image, so the
+// frame never resizes — other images that don't match that ratio are
+// letterboxed (object-fit: contain) inside it instead of cropped.
+// Clicking the right/left half of the gallery advances/goes back; the
+// title opens the same gallery fullscreen. See projectGallery.ts.
+import { Picture } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  project: CollectionEntry<'work'>;
+  eagerFirstImage?: boolean;
+  // Renders this project's gallery pre-hidden (see .is-locked below), for
+  // Project 1 only — this is just the server-rendered starting state, so
+  // there's no flash of it visible before introHero.ts runs. It reveals
+  // this (or moves the lock to a different project entirely — see
+  // introHero.ts) once the fullscreen intro finishes shrinking into
+  // place.
+  initiallyLocked?: boolean;
+  // Anchor target for the "work" nav link (see SiteHeader.astro). Set on
+  // Project 1 at build time; introHero.ts may move it to a different
+  // project's <article> at runtime (see syncTargetToHero).
+  id?: string;
+  // This project's fixed position in the hero gallery (see index.astro
+  // and introHero.ts) — a stable lookup key so the currently-shown hero
+  // image can be traced back to its real feed entry regardless of how
+  // introHero.ts has since reordered .feed.
+  heroIndex: number;
+}
+
+const { project, eagerFirstImage = false, initiallyLocked = false, id, heroIndex } = Astro.props;
+const { title, meta, images, teammates } = project.data;
+const slideshowId = `slideshow-${project.id}`;
+// images[0] (the cover) is always a real processed image in practice — a
+// gif is only ever appended at the end — but fall back to a sane default
+// ratio rather than crash if that's ever not true.
+const firstImage = images[0];
+const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height : 16 / 9;
+---
+
+<article class="project" data-project data-slug={project.id} data-hero-index={heroIndex} id={id} style={`--gallery-ratio: ${ratio}`}>
+  <div class="project__label">
+    <button type="button" class="project__title" data-open-slideshow={slideshowId}>
+      {title}
+    </button>
+    <p class="project__subtitle">{meta}</p>
+  </div>
+
+  <div class:list={['project__gallery', 'gallery', { 'is-locked': initiallyLocked }]} data-gallery>
+    {
+      images.map((img, i) => (
+        <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-index={i}>
+          {'gif' in img ? (
+            <img src={img.gif} alt={img.alt} loading="eager" decoding="async" class="gallery__image" />
+          ) : (
+            <Picture
+              src={img.src}
+              alt={img.alt}
+              formats={['avif', 'webp']}
+              widths={[480, 800, 1200, 1600, 2000]}
+              sizes="(max-width: 700px) 100vw, 80vw"
+              loading={i === 0 && eagerFirstImage ? 'eager' : 'lazy'}
+              decoding="async"
+              class="gallery__image"
+            />
+          )}
+        </div>
+      ))
+    }
+    <button type="button" class="gallery__zone gallery__zone--prev" data-gallery-prev aria-label="Previous image" />
+    <button type="button" class="gallery__zone gallery__zone--next" data-gallery-next aria-label="Next image" />
+  </div>
+
+  {teammates && teammates.length > 0 && <p class="project__credits">{teammates.join(', ')}</p>}
+
+  <dialog class="slideshow" id={slideshowId} data-slideshow aria-label="Enlarged photo. Click the right or left half to move between photos, click outside or press Escape to close.">
+    <div class="slideshow__gallery gallery" data-gallery>
+      {
+        images.map((img, i) => (
+          <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-index={i}>
+            {'gif' in img ? (
+              <img
+                src={img.gif}
+                alt={img.alt}
+                loading="eager"
+                decoding="async"
+                class="gallery__image gallery__image--contain"
+              />
+            ) : (
+              <Picture
+                src={img.src}
+                alt={img.alt}
+                formats={['avif', 'webp']}
+                widths={[480, 800, 1200, 1600, 2000]}
+                sizes="100vw"
+                loading="lazy"
+                decoding="async"
+                class="gallery__image gallery__image--contain"
+              />
+            )}
+          </div>
+        ))
+      }
+      <button type="button" class="gallery__zone gallery__zone--prev" data-gallery-prev aria-label="Previous image" />
+      <button type="button" class="gallery__zone gallery__zone--next" data-gallery-next aria-label="Next image" />
+    </div>
+  </dialog>
+</article>
+
+<style>
+  .project {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--margin-width) 1fr;
+    align-items: end;
+    /* Deliberately much tighter than --section-gap (used elsewhere for
+       page-level breathing room) — projects should read as one close
+       sequence, not spaced-out standalone sections. This is only the
+       baseline/no-JS value: --gallery-max-height caps the gallery at
+       82vh, but its actual rendered height also depends on the
+       available column width (whichever constraint is tighter), so a
+       fixed margin can't reliably fill the rest of the viewport below
+       it for every combination of image ratio and viewport shape.
+       projectSpacing.ts measures each gallery's real rendered height
+       and overrides this with an exact value, so the next project never
+       peeks into view while snapped to this one. */
+    margin-bottom: clamp(2rem, 6vw, 4rem);
+    /* Only meaningful on Project 1, which carries the #first-project
+       anchor (see SiteHeader.astro) — keeps a jump-link landing clear of
+       the fixed band, same as .project__gallery's own scroll-margin-top
+       for scroll-snap. */
+    scroll-margin-top: var(--band-height);
+  }
+
+  .project__label {
+    padding: 0 1.5rem 0 var(--gutter);
+  }
+
+  .project__subtitle {
+    font-size: var(--fs-caption);
+    font-weight: 400;
+    color: var(--color-fg-muted);
+    margin: 0.25rem 0 0;
+    /* Lets a project's meta string force a specific line break (e.g.
+       Aparkment's "Fall 2025" on its own line) via an embedded newline,
+       while still wrapping/collapsing whitespace normally for every
+       other project's single-line meta text. */
+    white-space: pre-line;
+  }
+
+  /* Teammate credits on group projects — sits in the white margin just
+     to the left of the gallery's own real edge (not overlaid on the
+     image itself, and not clipped by the gallery's own overflow:
+     hidden, since it's a sibling of it rather than a child), hugging it
+     with just a hairline of gap, half the subtitle's size. Its "left"
+     is set by projectSpacing.ts, not CSS — the gallery's actual edge
+     depends on whichever of --gallery-max-height or the available
+     column width is the tighter constraint for this image's ratio, so
+     a fixed CSS offset can't track it for every project/viewport
+     combination. vertical-rl + the 180deg flip reads bottom-to-top with
+     the characters themselves rotated to face upward (tilt your head
+     left), starting flush with the image's bottom edge (matching
+     .project's align-items: end) and growing upward. white-space:
+     nowrap keeps it one continuous vertical run rather than wrapping
+     into a second column if it's taller than the image. */
+  .project__credits {
+    position: absolute;
+    bottom: 0;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    font-size: calc(var(--fs-caption) / 2);
+    font-weight: 400;
+    color: var(--color-fg-muted);
+    margin: 0;
+  }
+
+  .project__title {
+    display: block;
+    font-size: var(--fs-caption);
+    font-weight: 700;
+    text-align: left;
+  }
+
+  /* ---- Gallery (shared by the inline row and the fullscreen dialog) -- */
+  .gallery {
+    position: relative;
+    background: var(--color-bg);
+    overflow: hidden;
+  }
+
+  .project__gallery {
+    aspect-ratio: var(--gallery-ratio);
+    /* Capped so the whole image fits on screen at once instead of
+       running taller than the viewport. Width is derived from that
+       height cap (rather than always filling the column), so the ratio
+       stays true and never letterboxes the cover image; any leftover
+       space lands on the left via margin-left, keeping the right edge
+       flush with the viewport. */
+    max-height: var(--gallery-max-height);
+    width: min(100%, calc(var(--gallery-max-height) * var(--gallery-ratio)));
+    margin-left: auto;
+    /* Scroll-snap target (see index.astro) — lands with this image's
+       top edge just below the fixed band, never cut off mid-scroll. */
+    scroll-snap-align: start;
+    scroll-margin-top: var(--band-height);
+  }
+
+  /* All frames stay laid out (position: absolute, stacked) and only
+     toggle visibility — never display: none. A display: none image has
+     no box, so the browser's native lazy-loading never considers it
+     "near the viewport" and won't fetch it until the instant it's
+     revealed, which is what made cycling feel sluggish: every click to
+     an unseen image paid a full network fetch right then. With a real
+     (if invisible) box, every frame in a gallery that's scrolled into
+     view starts prefetching immediately, so by the time you click,
+     it's already cached. visibility: hidden also removes it from hit
+     testing, so hidden frames can't be clicked or read by a screen
+     reader — no extra rules needed for that. */
+  .gallery__frame {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    z-index: 0;
+    /* The .gallery__zone buttons handle all hover/click for the gallery
+       — frames (and their images) never need to be interactive
+       themselves. Set unconditionally, active or not, so the zones'
+       cursor and clicks are never at risk of being intercepted by the
+       image sitting right underneath them. */
+    pointer-events: none;
+  }
+
+  .gallery__frame.is-active {
+    visibility: visible;
+  }
+
+  .gallery__image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* When an image's own ratio doesn't match the gallery box (e.g. a
+       square or portrait photo inside a wide landscape box), contain
+       never crops it — top and bottom always stay fully visible — but
+       centering it by default leaves the leftover space split evenly on
+       both sides, which visually disconnects it from the teammate
+       credits anchored to the box's real left edge (see
+       .project__credits / projectSpacing.ts). Left-aligning instead
+       keeps the image flush with that edge and pushes all the leftover
+       margin to the right, where nothing else is anchored. Only
+       affects the inline row gallery in practice — the slideshow's
+       images use .gallery__image--contain below, which overrides width/
+       height to auto and so never letterboxes in the first place. */
+    object-position: left center;
+  }
+
+  .gallery__zone {
+    position: absolute;
+    inset: 0 50% 0 0;
+    background: transparent;
+    z-index: 1;
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTggNiBMOSAxNCBMMTggMjInIGZpbGw9J25vbmUnIHN0cm9rZT0nYmxhY2snIHN0cm9rZS13aWR0aD0nMi41JyBzdHJva2UtbGluZWNhcD0ncm91bmQnIHN0cm9rZS1saW5lam9pbj0ncm91bmQnLz48L3N2Zz4K')
+      14 14,
+      auto;
+  }
+
+  .gallery__zone--next {
+    inset: 0 0 0 50%;
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTAgNiBMMTkgMTQgTDEwIDIyJyBmaWxsPSdub25lJyBzdHJva2U9J2JsYWNrJyBzdHJva2Utd2lkdGg9JzIuNScgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJyBzdHJva2UtbGluZWpvaW49J3JvdW5kJy8+PC9zdmc+Cg==')
+      14 14,
+      auto;
+  }
+
+  .gallery__zone:disabled {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  /* Set by introHero.ts on Project 1's gallery while the intro hero is
+     still shrinking into place: hidden (the decoy is showing the same
+     image fullscreen instead — without this there'd be two visible at
+     once) and inert, until it arrives. Deliberately visibility, not
+     display: none — introHero.ts measures this element's real geometry
+     to compute where the decoy should land, and a display: none element
+     reports a zeroed-out rect, which would break that math. */
+  .project__gallery.is-locked {
+    visibility: hidden;
+  }
+
+  /* .gallery__frame.is-active sets visibility: visible directly on
+     itself (see above), which otherwise wins over the hidden state
+     inherited from .is-locked here — this rule is more specific, so it
+     wins instead, keeping the active frame hidden while locked. */
+  .project__gallery.is-locked .gallery__frame.is-active {
+    visibility: hidden;
+  }
+
+  .project__gallery.is-locked .gallery__zone {
+    pointer-events: none;
+    cursor: default;
+  }
+
+  @media (max-width: 700px) {
+    .project {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+
+    .project__label {
+      padding: 0 var(--gutter);
+      margin-bottom: 1rem;
+    }
+
+    .project__gallery {
+      margin-inline: auto;
+    }
+  }
+
+  /* ---- Fullscreen slideshow --------------------------------------------
+     Mirrors the frames page's lightbox: a smaller, ratio-locked viewer
+     centered over a translucent white film rather than a fully opaque
+     background, so the fixed top bar stays visible (tinted) underneath.
+     Anywhere in the margin outside the photo reads as "click to exit",
+     with the same X cursor as the frames lightbox. */
+  .slideshow {
+    padding: 0;
+    border: 0;
+    max-width: none;
+    max-height: none;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNOCA4IEwyMCAyMCBNMjAgOCBMOCAyMCcgZmlsbD0nbm9uZScgc3Ryb2tlPSdibGFjaycgc3Ryb2tlLXdpZHRoPScyJyBzdHJva2UtbGluZWNhcD0ncm91bmQnLz48L3N2Zz4K')
+      14 14,
+      pointer;
+  }
+
+  .slideshow[open] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .slideshow::backdrop {
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  .slideshow__gallery {
+    aspect-ratio: var(--gallery-ratio);
+    width: min(90vw, calc(82vh * var(--gallery-ratio)));
+    max-height: 82vh;
+    cursor: default;
+  }
+
+  .gallery__image--contain {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    margin: auto;
+  }
+</style>

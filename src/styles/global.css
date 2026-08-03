@@ -1,0 +1,75 @@
+@import '@fontsource/be-vietnam-pro/400.css';
+@import '@fontsource/be-vietnam-pro/700.css';
+
+/* ---- Design tokens -------------------------------------------------- */
+/* Small, deliberate scale. Every size on the site is one of these. */
+:root {
+  --color-bg: #ffffff;
+  --color-fg: #0a0a0a;
+  --color-fg-muted: #6b6b6b;
+
+  --font-sans: 'Be Vietnam Pro', system-ui, sans-serif;
+
+  --gutter: clamp(1.25rem, 4vw, 3rem);
+  --section-gap: clamp(4rem, 14vw, 9rem);
+
+  --band-height: clamp(3rem, 6vw, 4rem);
+  --margin-width: 20rem;
+  --gallery-max-height: 82vh;
+
+  --name-size-large: clamp(3rem, 13vw, 9.5rem);
+  --name-size-small: 1.05rem;
+
+  --fs-nav: 0.95rem;
+  --fs-caption: 1rem;
+  --fs-lead: 1.25rem;
+  --fs-body: 1rem;
+  --fs-meta: 0.8rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Reserve room below the fixed top band so content doesn't start right
+   underneath it. The band + name + nav are positioned by
+   SiteHeader.astro. */
+.page {
+  padding: calc(var(--band-height) + var(--gutter)) var(--gutter) var(--section-gap);
+}

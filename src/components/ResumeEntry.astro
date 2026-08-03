@@ -1,0 +1,90 @@
+---
+// Shared by every dated entry on the About page (Experience, Education,
+// Music, Service, Awards) — same two-tier subject/qualifier + right-
+// aligned date pattern throughout. Skills and Contact don't use this;
+// they're structurally different (no dates).
+interface Props {
+  subject: string;
+  qualifier?: string;
+  date: string;
+  bullets?: string[];
+}
+
+const { subject, qualifier, date, bullets = [] } = Astro.props;
+---
+
+<div class="entry">
+  <div class="entry__header">
+    <div class="entry__text">
+      <p class="entry__subject">{subject}</p>
+      {qualifier && <p class="entry__qualifier">{qualifier}</p>}
+    </div>
+    <p class="entry__date">{date}</p>
+  </div>
+  {
+    bullets.length > 0 && (
+      <div class="entry__bullets">
+        {bullets.map((bullet) => (
+          <p>{bullet}</p>
+        ))}
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .entry {
+    margin-bottom: 1.75rem;
+  }
+
+  .entry:last-child {
+    margin-bottom: 0;
+  }
+
+  .entry__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  .entry__subject {
+    /* Same size as the qualifier below it and the date beside it —
+       weight and color are what distinguish them, not size. */
+    font-size: calc(var(--fs-lead) * 1.7);
+    font-weight: 700;
+    color: var(--color-fg);
+    margin: 0;
+  }
+
+  .entry__qualifier {
+    font-size: calc(var(--fs-lead) * 1.5);
+    font-weight: 400;
+    color: var(--color-fg-muted);
+    margin: 0.25rem 0 0;
+  }
+
+  .entry__date {
+    font-size: calc(var(--fs-lead) * 1.7);
+    font-weight: 400;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .entry__bullets p {
+    max-width: 50%;
+    font-size: var(--fs-body);
+    color: var(--color-fg);
+    margin: 0.5rem 0 0;
+  }
+
+  @media (max-width: 600px) {
+    .entry__header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
+  }
+</style>

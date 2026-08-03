@@ -1,0 +1,24 @@
+{
+  "name": "portfolio",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "resume:pdf": "node scripts/generate-resume-pdf.mjs"
+  },
+  "dependencies": {
+    "@fontsource/be-vietnam-pro": "^5.2.8",
+    "astro": "^7.0.9"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "playwright": "^1.56.0",
+    "typescript": "^6.0.3"
+  }
+}
