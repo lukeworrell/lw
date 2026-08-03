@@ -52,7 +52,7 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
     <p class="project__subtitle">{meta}</p>
   </div>
 
-  <div class:list={['project__gallery', 'gallery', { 'is-locked': initiallyLocked }]} data-gallery>
+  <div class:list={['project__gallery', 'gallery', { 'is-locked': initiallyLocked }]} data-gallery data-loop>
     {
       images.map((img, i) => (
         <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-index={i}>
@@ -80,7 +80,7 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
   {teammates && teammates.length > 0 && <p class="project__credits">{teammates.join(', ')}</p>}
 
   <dialog class="slideshow" id={slideshowId} data-slideshow aria-label="Enlarged photo. Click the right or left half to move between photos, click outside or press Escape to close.">
-    <div class="slideshow__gallery gallery" data-gallery>
+    <div class="slideshow__gallery gallery" data-gallery data-loop>
       {
         images.map((img, i) => (
           <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-index={i}>
