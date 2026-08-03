@@ -280,6 +280,19 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
     object-position: left center;
   }
 
+  /* One-off request for Modular Housing's four physical-model photos
+     (the 10th through 13th slides): centered in the inline row gallery
+     instead of left-aligned like every other image above — these are
+     photographs, not drawings anchored to the teammate credits, and
+     read better centered. Scoped to this project's own gallery only, so
+     every other project keeps the left-aligned default. */
+  [data-slug='modular-housing'] .project__gallery .gallery__frame:nth-child(10) .gallery__image,
+  [data-slug='modular-housing'] .project__gallery .gallery__frame:nth-child(11) .gallery__image,
+  [data-slug='modular-housing'] .project__gallery .gallery__frame:nth-child(12) .gallery__image,
+  [data-slug='modular-housing'] .project__gallery .gallery__frame:nth-child(13) .gallery__image {
+    object-position: center;
+  }
+
   .gallery__zone {
     position: absolute;
     inset: 0 50% 0 0;
