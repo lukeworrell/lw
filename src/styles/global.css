@@ -38,6 +38,13 @@ html {
   color: var(--color-fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  /* Small dot instead of the standard arrow, everywhere by default. Set
+     here (a plain CSS cursor, not a script) so it's in effect from
+     first paint — a script couldn't apply it any earlier, and could
+     only add a flash of the native arrow before it ran. */
+  cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48Y2lyY2xlIGN4PScxNCcgY3k9JzE0JyByPSczJyBmaWxsPSdibGFjaycvPjwvc3ZnPg==')
+    14 14,
+    auto;
 }
 
 body {
@@ -64,7 +71,19 @@ button {
   background: none;
   border: 0;
   padding: 0;
-  cursor: pointer;
+}
+
+/* The "+" from the frames page's photo grid, generalized to every plain
+   link/button site-wide — anything clickable that doesn't already carry
+   a more specific cursor of its own (the gallery zones' chevrons, the
+   slideshow/lightbox's X) gets this instead of the dot above. A bare
+   element selector here keeps that automatic: those already win on
+   specificity without needing this rule to know about them. */
+a,
+button {
+  cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTQgNiBMMTQgMjIgTTYgMTQgTDIyIDE0JyBmaWxsPSdub25lJyBzdHJva2U9J2JsYWNrJyBzdHJva2Utd2lkdGg9JzInIHN0cm9rZS1saW5lY2FwPSdyb3VuZCcvPjwvc3ZnPgo=')
+    14 14,
+    pointer;
 }
 
 /* Reserve room below the fixed top band so content doesn't start right
