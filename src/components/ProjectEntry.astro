@@ -243,6 +243,24 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
     visibility: visible;
   }
 
+  /* <Picture>'s class prop lands on the inner <img>, not the <picture>
+     wrapper it generates — leaving that wrapper with no size of its
+     own. As a flex item sized by content, its height depends on the
+     img inside it, whose own height: 100% depends right back on the
+     wrapper — a circular percentage that browsers resolve by quietly
+     ignoring it, computing the img's height from its intrinsic ratio
+     instead. Invisible for landscape photos wide enough that width was
+     already the binding dimension, but it let portrait photos render
+     taller than the frame and get clipped by .gallery's overflow:
+     hidden. Giving the wrapper an explicit, non-circular 100%/100% size
+     makes the img's own percentage height resolve properly, so
+     object-fit: contain has a real box to fit into either way. */
+  .gallery__frame picture {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
   .gallery__image {
     width: 100%;
     height: 100%;
@@ -388,11 +406,22 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
     cursor: default;
   }
 
+  /* Was width/height: auto + max-width/max-height: 100% — a classic CSS
+     trap: percentage max-height can fail to resolve through this
+     picture>img structure, silently falling back to constraining by
+     width only. Invisible for landscape photos (width was already the
+     binding constraint), but it genuinely let portrait photos render
+     taller than the box and get clipped top/bottom by the box's
+     overflow: hidden. width/height: 100% + object-fit: contain (the
+     same pattern already proven correct on .gallery__image for the
+     inline row gallery) sizes definitively off the parent frame
+     instead, so contain has a real box to fit into regardless of
+     orientation. object-position overrides the inline row's
+     left-aligned default back to centered, appropriate for a fullscreen
+     viewer. */
   .gallery__image--contain {
-    width: auto;
-    height: auto;
-    max-width: 100%;
-    max-height: 100%;
-    margin: auto;
+    width: 100%;
+    height: 100%;
+    object-position: center;
   }
 </style>
