@@ -8,9 +8,17 @@
 // per-slide toggle — cycling back to the title card or opening gif
 // afterward keeps dark mode on (the title card swaps to its black-
 // background version instead, see .cymatic-sound-- in ProjectEntry.astro,
-// so it doesn't read as a jarring white slide). It only reverts to light
-// when this project scrolls out of view — a real page navigation resets
-// it for free, since nothing here persists across one.
+// so it doesn't read as a jarring white slide).
+//
+// Scrolling this project out of view turns dark mode off — visually —
+// but the fact that it had triggered is remembered (not reset), and the
+// gallery's own current slide doesn't change just because you scrolled
+// away from it. So scrolling back finds both still true and restores
+// dark mode immediately, matching whatever slide is still showing,
+// without needing to click through the gallery again. Swipe off, swipe
+// back: dark again. Swipe off again: light again, every time. A real
+// page navigation resets everything for free, since nothing here
+// persists across one.
 //
 // --color-bg while dark isn't a single fixed color — the video's walls,
 // the grasshopper study's background, and the panel study's background
@@ -47,7 +55,15 @@ const DARK_BG_BY_INDEX: Record<number, string> = {
 const article = document.querySelector<HTMLElement>(`[data-slug="${SLUG}"]`);
 
 if (article) {
+  // Sticky for the rest of the page session — set once slide 2+ is ever
+  // reached, never cleared by scrolling away. What scrolling away clears
+  // is only the *visual* dark-mode state (see the observer below).
   let triggered = false;
+  // The gallery's own active slide persists while scrolled away (nothing
+  // resets it just because it's off-screen) — tracked here too so the
+  // observer can restore the right shade of dark on return without
+  // waiting for a 'gallery:index' event that scrolling alone won't fire.
+  let currentIndex = 0;
 
   function setDark(on: boolean, index?: number) {
     document.documentElement.classList.toggle('is-dark-mode', on);
@@ -62,6 +78,7 @@ if (article) {
   article.addEventListener('gallery:index', (event) => {
     const index = (event as CustomEvent<{ index: number }>).detail?.index;
     if (typeof index !== 'number') return;
+    currentIndex = index;
     if (index >= DARK_FROM_INDEX) triggered = true;
     // Once triggered, every subsequent slide change (either direction)
     // keeps dark mode on and just updates which shade of "dark" matches
@@ -70,17 +87,18 @@ if (article) {
     if (triggered) setDark(true, index);
   });
 
-  // The only way back to light: this project scrolls out of view. Also
-  // resets the latch, so a fresh visit starts light again until slide 2+
-  // is reached again — a fairly generous intersection threshold (mostly
-  // gone, not just no-longer-perfectly-centered) so it doesn't flicker
-  // off during an in-progress scroll snap that's about to settle back on
-  // it.
+  // Scrolling away always goes light (visually) regardless of whether
+  // this project had triggered dark mode; scrolling back restores it
+  // immediately if it had, using whatever slide is still active. A
+  // fairly generous intersection threshold (mostly gone/back, not just
+  // no-longer-perfectly-centered) so it doesn't flicker during an
+  // in-progress scroll snap that's about to settle back on it.
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
-        if (!entry.isIntersecting) {
-          triggered = false;
+        if (entry.isIntersecting) {
+          if (triggered) setDark(true, currentIndex);
+        } else {
           setDark(false);
         }
       }
