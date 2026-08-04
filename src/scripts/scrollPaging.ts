@@ -67,15 +67,30 @@ function goToStep(direction: 1 | -1) {
   window.scrollTo({ top: targetY, behavior: reduceMotion ? 'auto' : 'smooth' });
 }
 
+// A short scroll (a nearby snap point — the intro's is deliberately
+// short now) can genuinely finish, firing a real 'scrollend', before a
+// strong swipe's momentum tail has stopped sending wheel events. Without
+// this, that's indistinguishable from a deliberate second swipe thrown
+// right after the first, and unlocking exactly on 'scrollend' would let
+// it straight through — overshooting past the step that just landed.
+// This buffer only has to outlast the *tail end* of a tail, not a whole
+// gesture, so it's much shorter than FALLBACK_COOLDOWN_MS below.
+const POST_SCROLL_SETTLE_MS = 350;
+
 let locked = false;
 let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+let settleTimer: ReturnType<typeof setTimeout> | undefined;
 
 function unlock() {
   locked = false;
   clearTimeout(fallbackTimer);
+  clearTimeout(settleTimer);
 }
 
-window.addEventListener('scrollend', unlock);
+window.addEventListener('scrollend', () => {
+  clearTimeout(fallbackTimer);
+  settleTimer = setTimeout(unlock, POST_SCROLL_SETTLE_MS);
+});
 
 window.addEventListener(
   'wheel',

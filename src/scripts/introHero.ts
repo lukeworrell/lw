@@ -34,6 +34,18 @@ function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
+// p tracks scroll fraction directly, which is linear — every pixel of
+// scroll moves the box the same amount regardless of how far into the
+// shrink it already is. That reads as mechanical, tied a little too
+// literally to the scrollbar. Easing the value used for the actual
+// visual lerp (not p itself, which state logic below still needs raw —
+// arrival, the re-sync scroll-compensation math) makes the motion ease
+// out toward its resting place instead, which is what actually reads as
+// "smooth" rather than "linear."
+function easeOutCubic(t: number) {
+  return 1 - (1 - t) ** 3;
+}
+
 if (intro && spacer && feed && target && targetArticle) {
   let documentOffsetTop = 0;
   let restLeft = 0;
@@ -101,11 +113,12 @@ if (intro && spacer && feed && target && targetArticle) {
     }
 
     const restTop = documentOffsetTop - distance;
+    const pVisual = easeOutCubic(p);
 
-    intro!.style.top = `${lerp(0, restTop, p)}px`;
-    intro!.style.left = `${lerp(0, restLeft, p)}px`;
-    intro!.style.width = `${lerp(window.innerWidth, restWidth, p)}px`;
-    intro!.style.height = `${lerp(window.innerHeight, restHeight, p)}px`;
+    intro!.style.top = `${lerp(0, restTop, pVisual)}px`;
+    intro!.style.left = `${lerp(0, restLeft, pVisual)}px`;
+    intro!.style.width = `${lerp(window.innerWidth, restWidth, pVisual)}px`;
+    intro!.style.height = `${lerp(window.innerHeight, restHeight, pVisual)}px`;
 
     const arrived = p >= 1;
     intro!.classList.toggle('is-done', arrived);

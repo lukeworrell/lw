@@ -110,7 +110,12 @@ const heroImages = projects.slice(0, 2).map((project) => project.data.images[0])
   }
 
   .intro-spacer {
-    height: 100vh;
+    /* Was 100vh — the full-viewport-height scroll it took to complete
+       the shrink made the one swipe that covers it (see
+       scrollPaging.ts) feel like a long, heavy gesture. Less distance
+       for the same eased motion (see introHero.ts) reads as quicker and
+       tighter without feeling rushed. */
+    height: 70vh;
     scroll-snap-align: start;
   }
 
