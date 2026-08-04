@@ -1,4 +1,4 @@
-// Three independent behaviors, all scoped to the work feed:
+// Four independent behaviors, all scoped to the work feed:
 //  1. Each `[data-gallery]` (the inline row gallery and the fullscreen
 //     slideshow gallery are each one) tracks its own current image.
 //     Clicking the right half advances, the left half goes back. By
@@ -13,6 +13,18 @@
 //     frame becomes active, and stops (paused, rewound) the moment it
 //     doesn't. Generic — works for any project's video slide, not
 //     special-cased to Cymatic Ceiling's.
+//  4. That same video also stops if you leave it *without* changing
+//     slides — scrolling the inline gallery out of view, or closing the
+//     fullscreen dialog (clicking off, or Escape). Advancing to a
+//     different slide already stops it via #3; this covers the two ways
+//     of leaving that don't go through setIndex at all.
+
+function pauseVideos(scope: ParentNode) {
+  scope.querySelectorAll<HTMLVideoElement>('video').forEach((video) => {
+    video.pause();
+    video.currentTime = 0;
+  });
+}
 
 function setIndex(gallery: Element, index: number, loop: boolean) {
   const frames = Array.from(gallery.querySelectorAll<HTMLElement>('.gallery__frame'));
@@ -25,8 +37,7 @@ function setIndex(gallery: Element, index: number, loop: boolean) {
         video.currentTime = 0;
         video.play().catch(() => {});
       } else {
-        video.pause();
-        video.currentTime = 0;
+        pauseVideos(frame);
       }
     }
   });
@@ -82,4 +93,26 @@ document.querySelectorAll<HTMLDialogElement>('[data-slideshow]').forEach((dialog
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
   });
+
+  // 'close' fires for both a click-off (.close() above) and Escape (the
+  // dialog's own native handling) — one listener covers both.
+  if (dialog.querySelector('video')) {
+    dialog.addEventListener('close', () => pauseVideos(dialog));
+  }
+});
+
+// Stops a playing video if its gallery scrolls out of view without ever
+// changing slides — e.g. scrolling past the project entirely while its
+// video slide is still the active one.
+document.querySelectorAll<HTMLElement>('[data-gallery]').forEach((gallery) => {
+  if (!gallery.querySelector('video')) return;
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) pauseVideos(gallery);
+      }
+    },
+    { threshold: 0.1 },
+  );
+  observer.observe(gallery);
 });

@@ -16,7 +16,7 @@ images:
     width: 1000
     height: 558
   - gif: "/work/cymatic-ceiling/sound-statement.gif"
-    alt: "Looping title slides reading \"sound you can hear, feel, and see\" and \"translucent membrane suspended by a field of probes\""
+    alt: "Title slide reading \"sound you can hear, feel, and see\""
   - video: "/work/cymatic-ceiling/probes-detail.mp4"
     alt: "Video detail of the translucent membrane and probe field driving the cymatic pattern, with audio"
   - gif: "/work/cymatic-ceiling/grasshopper-study.gif"

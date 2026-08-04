@@ -38,6 +38,12 @@ html {
   color: var(--color-fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  /* Smooths the Cymatic Ceiling dark-mode toggle (see cymaticDarkMode.ts)
+     into a crossfade instead of a snap — harmless everywhere else, since
+     --color-bg/--color-fg otherwise never change after load. */
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease;
   /* Small dot instead of the standard arrow, everywhere by default. Set
      here (a plain CSS cursor, not a script) so it's in effect from
      first paint — a script couldn't apply it any earlier, and could

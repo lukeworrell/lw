@@ -216,6 +216,11 @@ const ratio =
     position: relative;
     background: var(--color-bg);
     overflow: hidden;
+    /* Smooths the Cymatic Ceiling dark-mode toggle — see the matching
+       comment on html in global.css. This is the letterbox color right
+       next to the image itself, so it's the most visible seam if it
+       snapped instead of crossfading. */
+    transition: background-color 0.5s ease;
   }
 
   .project__gallery {
@@ -448,6 +453,7 @@ const ratio =
 
   .slideshow::backdrop {
     background: rgba(255, 255, 255, 0.92);
+    transition: background-color 0.5s ease;
   }
 
   /* Dark-mode versions of the two rules above (see cymaticDarkMode.ts) —
