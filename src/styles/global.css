@@ -92,3 +92,28 @@ button {
 .page {
   padding: calc(var(--band-height) + var(--gutter)) var(--gutter) var(--section-gap);
 }
+
+/* One-off request, toggled by cymaticDarkMode.ts while viewing the
+   "Cymatic Ceiling" project's later slides: inverts the two tokens
+   nearly everything on the site already reads its color from, so this
+   alone covers backgrounds and text site-wide. --color-fg-muted is left
+   as-is — that grey reads fine against either background. The few
+   colors that AREN'T token-based (translucent white dialog backdrops,
+   and every custom SVG cursor, which is a flat color baked into the
+   image rather than something CSS can recolor) need their own explicit
+   overrides — see ProjectEntry.astro for the backdrop/gallery-zone/
+   slideshow ones scoped to that component. */
+html.is-dark-mode {
+  --color-bg: #0a0a0a;
+  --color-fg: #ffffff;
+  cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48Y2lyY2xlIGN4PScxNCcgY3k9JzE0JyByPSczJyBmaWxsPSd3aGl0ZScvPjwvc3ZnPg==')
+    14 14,
+    auto;
+}
+
+html.is-dark-mode a,
+html.is-dark-mode button {
+  cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTQgNiBMMTQgMjIgTTYgMTQgTDIyIDE0JyBmaWxsPSdub25lJyBzdHJva2U9J3doaXRlJyBzdHJva2Utd2lkdGg9JzInIHN0cm9rZS1saW5lY2FwPSdyb3VuZCcvPjwvc3ZnPg==')
+    14 14,
+    pointer;
+}

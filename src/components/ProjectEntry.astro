@@ -37,11 +37,20 @@ interface Props {
 const { project, eagerFirstImage = false, initiallyLocked = false, id, heroIndex } = Astro.props;
 const { title, meta, images, teammates } = project.data;
 const slideshowId = `slideshow-${project.id}`;
-// images[0] (the cover) is always a real processed image in practice — a
-// gif is only ever appended at the end — but fall back to a sane default
-// ratio rather than crash if that's ever not true.
+// images[0] (the cover) is normally a real processed image — a gif or
+// video is usually appended later in the array — but a gif can be the
+// cover too (see Cymatic Ceiling), in which case its own width/height
+// (set explicitly in that project's index.md, since a gif carries no
+// dimensions of its own the way a processed image does) are used
+// instead. Falls back to a sane default ratio rather than crash if
+// neither is available.
 const firstImage = images[0];
-const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height : 16 / 9;
+const ratio =
+  'src' in firstImage
+    ? firstImage.src.width / firstImage.src.height
+    : 'width' in firstImage && firstImage.width && firstImage.height
+      ? firstImage.width / firstImage.height
+      : 16 / 9;
 ---
 
 <article class="project" data-project data-slug={project.id} data-hero-index={heroIndex} id={id} style={`--gallery-ratio: ${ratio}`}>
@@ -58,6 +67,12 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
         <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-index={i}>
           {'gif' in img ? (
             <img src={img.gif} alt={img.alt} loading="eager" decoding="async" class="gallery__image" />
+          ) : 'video' in img ? (
+            // Played/paused/reset by projectGallery.ts as this slide
+            // becomes active/inactive — no autoplay/loop/controls
+            // attributes here, since that's all driven by gallery
+            // navigation instead of native video behavior.
+            <video src={img.video} aria-label={img.alt} class="gallery__image" playsinline preload="metadata" />
           ) : (
             <Picture
               src={img.src}
@@ -91,6 +106,14 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
                 loading="eager"
                 decoding="async"
                 class="gallery__image gallery__image--contain"
+              />
+            ) : 'video' in img ? (
+              <video
+                src={img.video}
+                aria-label={img.alt}
+                class="gallery__image gallery__image--contain"
+                playsinline
+                preload="metadata"
               />
             ) : (
               <Picture
@@ -315,6 +338,21 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
     pointer-events: none;
   }
 
+  /* Dark-mode chevron cursors (see cymaticDarkMode.ts) — html.is-dark-mode
+     is outside this component's own markup, so it needs :global() to
+     avoid Astro scoping it like .gallery__zone below is. */
+  :global(html.is-dark-mode) .gallery__zone {
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTggNiBMOSAxNCBMMTggMjInIGZpbGw9J25vbmUnIHN0cm9rZT0nd2hpdGUnIHN0cm9rZS13aWR0aD0nMi41JyBzdHJva2UtbGluZWNhcD0ncm91bmQnIHN0cm9rZS1saW5lam9pbj0ncm91bmQnLz48L3N2Zz4=')
+      14 14,
+      auto;
+  }
+
+  :global(html.is-dark-mode) .gallery__zone--next {
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTAgNiBMMTkgMTQgTDEwIDIyJyBmaWxsPSdub25lJyBzdHJva2U9J3doaXRlJyBzdHJva2Utd2lkdGg9JzIuNScgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJyBzdHJva2UtbGluZWpvaW49J3JvdW5kJy8+PC9zdmc+')
+      14 14,
+      auto;
+  }
+
   /* Set by introHero.ts on Project 1's gallery while the intro hero is
      still shrinking into place: hidden (the decoy is showing the same
      image fullscreen instead — without this there'd be two visible at
@@ -410,6 +448,18 @@ const ratio = 'src' in firstImage ? firstImage.src.width / firstImage.src.height
 
   .slideshow::backdrop {
     background: rgba(255, 255, 255, 0.92);
+  }
+
+  /* Dark-mode versions of the two rules above (see cymaticDarkMode.ts) —
+     same reasoning on :global() as the gallery-zone chevrons. */
+  :global(html.is-dark-mode) .slideshow {
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNOCA4IEwyMCAyMCBNMjAgOCBMOCAyMCcgZmlsbD0nbm9uZScgc3Ryb2tlPSd3aGl0ZScgc3Ryb2tlLXdpZHRoPScyJyBzdHJva2UtbGluZWNhcD0ncm91bmQnLz48L3N2Zz4=')
+      14 14,
+      pointer;
+  }
+
+  :global(html.is-dark-mode) .slideshow::backdrop {
+    background: rgba(0, 0, 0, 0.92);
   }
 
   .slideshow__gallery {

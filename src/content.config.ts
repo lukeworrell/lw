@@ -34,9 +34,23 @@ const work = defineCollection({
           // of going through Astro's image() pipeline — that pipeline
           // generates static AVIF/WebP variants and would flatten the
           // animation to a single frame. Rendered as a plain <img> so
-          // the browser plays it natively.
+          // the browser plays it natively. width/height are optional —
+          // only needed when a gif is images[0] (the cover), since that's
+          // the only place the gallery box's aspect ratio is read from,
+          // and a gif (unlike src) carries no dimensions of its own for
+          // ProjectEntry.astro to read.
           z.object({
             gif: z.string(),
+            alt: z.string(),
+            width: z.number().optional(),
+            height: z.number().optional(),
+          }),
+          // A video, referenced by a plain public/ path for the same
+          // reason as gif above. Rendered as a plain <video> — played
+          // and paused by projectGallery.ts as its slide becomes active/
+          // inactive, rather than autoplaying/looping on its own.
+          z.object({
+            video: z.string(),
             alt: z.string(),
           }),
         ]),

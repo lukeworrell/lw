@@ -1,21 +1,45 @@
-// Two independent behaviors, both scoped to the work feed:
+// Three independent behaviors, all scoped to the work feed:
 //  1. Each `[data-gallery]` (the inline row gallery and the fullscreen
 //     slideshow gallery are each one) tracks its own current image.
 //     Clicking the right half advances, the left half goes back. By
 //     default there's no looping — the prev/next hit zones disable
 //     themselves at the first/last image, which also removes their
-//     cursor. A gallery marked `data-loop` (the homepage's hero gallery)
+//     cursor. A gallery marked `data-loop` (every gallery, currently)
 //     wraps instead, and its zones are never disabled.
 //  2. Clicking a project's title opens its fullscreen slideshow dialog.
+//  3. Any <video> in a slide plays (with sound — this only works because
+//     it's called synchronously from the click handler below, inside the
+//     user-gesture window browsers require for unmuted autoplay) when its
+//     frame becomes active, and stops (paused, rewound) the moment it
+//     doesn't. Generic — works for any project's video slide, not
+//     special-cased to Cymatic Ceiling's.
 
 function setIndex(gallery: Element, index: number, loop: boolean) {
   const frames = Array.from(gallery.querySelectorAll<HTMLElement>('.gallery__frame'));
-  frames.forEach((frame, i) => frame.classList.toggle('is-active', i === index));
+  frames.forEach((frame, i) => {
+    const active = i === index;
+    frame.classList.toggle('is-active', active);
+    const video = frame.querySelector('video');
+    if (video) {
+      if (active) {
+        video.currentTime = 0;
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+        video.currentTime = 0;
+      }
+    }
+  });
 
   const prev = gallery.querySelector<HTMLButtonElement>('[data-gallery-prev]');
   const next = gallery.querySelector<HTMLButtonElement>('[data-gallery-next]');
   if (prev) prev.disabled = !loop && index === 0;
   if (next) next.disabled = !loop && index === frames.length - 1;
+
+  // Scoped listeners (see cymaticDarkMode.ts) pick this up via bubbling
+  // from whichever gallery changed — the event itself stays generic
+  // rather than knowing about any one project's behavior.
+  gallery.dispatchEvent(new CustomEvent('gallery:index', { detail: { index }, bubbles: true }));
 }
 
 document.querySelectorAll<HTMLElement>('[data-gallery]').forEach((gallery) => {
