@@ -37,6 +37,15 @@ interface Props {
 const { project, eagerFirstImage = false, initiallyLocked = false, id, heroIndex } = Astro.props;
 const { title, meta, images, teammates } = project.data;
 const slideshowId = `slideshow-${project.id}`;
+// One-off: this slide normally shows a white "sound you can hear, feel,
+// and see" title card, but once dark mode has triggered (see
+// cymaticDarkMode.ts) that reads as a jarring white slide in an
+// otherwise-dark page. Rendered as two stacked images instead of one,
+// with plain CSS (.cymatic-sound--light/--dark, gated on html.is-dark-
+// mode) choosing which is visible — no JS beyond the dark-mode class
+// toggle that already has to happen anyway.
+const CYMATIC_SOUND_SLIDE_INDEX = 1;
+const isCymaticSoundSlide = (i: number) => project.id === 'cymatic-ceiling' && i === CYMATIC_SOUND_SLIDE_INDEX;
 // images[0] (the cover) is normally a real processed image — a gif or
 // video is usually appended later in the array — but a gif can be the
 // cover too (see Cymatic Ceiling), in which case its own width/height
@@ -65,7 +74,24 @@ const ratio =
     {
       images.map((img, i) => (
         <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-index={i}>
-          {'gif' in img ? (
+          {isCymaticSoundSlide(i) ? (
+            <>
+              <img
+                src="/work/cymatic-ceiling/sound-statement-light.jpg"
+                alt={img.alt}
+                loading="eager"
+                decoding="async"
+                class="gallery__image cymatic-sound cymatic-sound--light"
+              />
+              <img
+                src="/work/cymatic-ceiling/sound-statement-dark.jpg"
+                alt={img.alt}
+                loading="eager"
+                decoding="async"
+                class="gallery__image cymatic-sound cymatic-sound--dark"
+              />
+            </>
+          ) : 'gif' in img ? (
             <img src={img.gif} alt={img.alt} loading="eager" decoding="async" class="gallery__image" />
           ) : 'video' in img ? (
             // Played/paused/reset by projectGallery.ts as this slide
@@ -99,7 +125,24 @@ const ratio =
       {
         images.map((img, i) => (
           <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-index={i}>
-            {'gif' in img ? (
+            {isCymaticSoundSlide(i) ? (
+              <>
+                <img
+                  src="/work/cymatic-ceiling/sound-statement-light.jpg"
+                  alt={img.alt}
+                  loading="eager"
+                  decoding="async"
+                  class="gallery__image gallery__image--contain cymatic-sound cymatic-sound--light"
+                />
+                <img
+                  src="/work/cymatic-ceiling/sound-statement-dark.jpg"
+                  alt={img.alt}
+                  loading="eager"
+                  decoding="async"
+                  class="gallery__image gallery__image--contain cymatic-sound cymatic-sound--dark"
+                />
+              </>
+            ) : 'gif' in img ? (
               <img
                 src={img.gif}
                 alt={img.alt}
@@ -319,6 +362,38 @@ const ratio =
   [data-slug='modular-housing'] .project__gallery .gallery__frame:nth-child(12) .gallery__image,
   [data-slug='modular-housing'] .project__gallery .gallery__frame:nth-child(13) .gallery__image {
     object-position: center;
+  }
+
+  /* Same reasoning for Cymatic Ceiling's video slide (the 3rd): this
+     project has no teammate credits to anchor a left edge against in the
+     first place (solo project), and its 16:9 ratio pillarboxes visibly
+     inside the wider gallery box, so the left-aligned default just reads
+     as an unexplained offset. */
+  [data-slug='cymatic-ceiling'] .project__gallery .gallery__frame:nth-child(3) .gallery__image {
+    object-position: 62% center;
+  }
+
+  /* The light/dark pair for Cymatic Ceiling's "sound you can hear, feel,
+     and see" slide (see isCymaticSoundSlide above) — stacked exactly on
+     top of each other so swapping which is visible reads as a straight
+     content change, not a layout shift. Plain CSS reacting to the same
+     html.is-dark-mode class everything else in dark mode already does;
+     no extra JS beyond the class toggle that already has to happen. */
+  .cymatic-sound {
+    position: absolute;
+    inset: 0;
+  }
+
+  .cymatic-sound--dark {
+    display: none;
+  }
+
+  :global(html.is-dark-mode) .cymatic-sound--light {
+    display: none;
+  }
+
+  :global(html.is-dark-mode) .cymatic-sound--dark {
+    display: block;
   }
 
   .gallery__zone {

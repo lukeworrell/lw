@@ -15,7 +15,13 @@ images:
     alt: "Looping rendering of the cymatic ceiling installation above a jazz quartet, its wave pattern subtly shifting between frames"
     width: 1000
     height: 558
-  - gif: "/work/cymatic-ceiling/sound-statement.gif"
+  # Special-cased in ProjectEntry.astro (see the cymatic-ceiling check
+  # there): actually renders as two stacked images — this light version
+  # normally, swapping to a black-background version once dark mode has
+  # triggered, so this slide doesn't show a jarring white slide while
+  # everything else on the page is dark. This entry's own src/alt is
+  # only what's used if that special case is ever removed.
+  - gif: "/work/cymatic-ceiling/sound-statement-light.jpg"
     alt: "Title slide reading \"sound you can hear, feel, and see\""
   - video: "/work/cymatic-ceiling/probes-detail.mp4"
     alt: "Video detail of the translucent membrane and probe field driving the cymatic pattern, with audio"
