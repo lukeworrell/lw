@@ -77,6 +77,17 @@ document.querySelectorAll<HTMLElement>('[data-gallery]').forEach((gallery) => {
       setIndex(gallery, (current = 0), loop);
     }
   });
+
+  // Lets outside code (see introHero.ts) jump this gallery straight to a
+  // specific slide — e.g. carrying over whichever image the homepage
+  // hero was showing when it handed off to Project 1's real gallery —
+  // without reaching into `current`, which is private to this closure.
+  gallery.addEventListener('gallery:set-index', (event) => {
+    const requested = (event as CustomEvent<{ index: number }>).detail.index;
+    if (requested >= 0 && requested < frameCount) {
+      setIndex(gallery, (current = requested), loop);
+    }
+  });
 });
 
 document.querySelectorAll<HTMLButtonElement>('[data-open-slideshow]').forEach((button) => {

@@ -21,29 +21,29 @@ const projects = workCategories.flatMap((category) =>
 // its normal order — not a cross-project sampler. Project 1 is always
 // whichever project sorts first above (College of Architecture), so
 // there's no per-visit selection to make: introHero.ts's shrink
-// animation targets that same project's real gallery, fixed at load.
-// Clicking past the last hero image (see introHero.ts) hands off to it
-// automatically, without waiting for a scroll.
-const HERO_SLIDE_NUMBERS = [1, 2, 3, 4, 6, 7];
+// animation targets that same project's real gallery, fixed at load, and
+// cycles through these images on its own timer (see introHero.ts).
+const HERO_SLIDE_NUMBERS = [1, 2, 3, 6, 7];
 const heroImages = HERO_SLIDE_NUMBERS.map((slideNumber) => projects[0].data.images[slideNumber - 1]);
 ---
 
 <BaseLayout title="Luke Worrell — Work" deferHeaderReveal>
-  <!-- Intro: fullscreen, click-through gallery of Project 1's entire
-       image deck (see projectGallery.ts, which drives any [data-gallery]
-       generically — the prev/next zones and chevron cursors are the same
-       ones used by each project's own gallery). data-loop keeps the
-       prev/next zones live at both ends — see introHero.ts, which
-       intercepts a "next" click on the very last image to hand off to
-       Project 1 directly instead of wrapping back to the first slide.
-       Scrolling through the spacer below does the same handoff on its
-       own timeline: introHero.ts shrinks the whole thing down to exactly
-       overlay Project 1's real gallery box, then hides it. -->
+  <!-- Intro: fullscreen gallery of Project 1's curated hero images — see
+       introHero.ts, which soft-crossfades between them on its own timer,
+       endlessly, purely to watch. No left/right zones — the only way to
+       move on is deliberate: scrolling past it, or clicking anywhere on
+       it, both of which hand off to Project 1 the same way, shrinking
+       this down to exactly overlay its real gallery box, then hiding it. -->
   <div class="intro-spacer" data-intro-spacer aria-hidden="true"></div>
-  <div class="intro gallery" data-intro data-gallery data-loop aria-hidden="true">
+  <div class="intro" data-intro aria-hidden="true">
     {
       heroImages.map((img, i) => (
-        <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-index={i}>
+        // data-target-index is this image's position in Project 1's own
+        // full gallery (not its position in this curated subset) — see
+        // introHero.ts, which reads it to carry whichever image was
+        // showing here over to that real gallery on handoff, instead of
+        // always resetting to its actual first slide.
+        <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-target-index={HERO_SLIDE_NUMBERS[i] - 1}>
           {'gif' in img ? (
             <img src={img.gif} alt="" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" class="intro__image" />
           ) : 'video' in img ? (
@@ -64,8 +64,6 @@ const heroImages = HERO_SLIDE_NUMBERS.map((slideNumber) => projects[0].data.imag
         </div>
       ))
     }
-    <button type="button" class="gallery__zone gallery__zone--prev" data-gallery-prev aria-label="Previous image" />
-    <button type="button" class="gallery__zone gallery__zone--next" data-gallery-next aria-label="Next image" />
   </div>
 
   <div class="feed">
@@ -120,6 +118,15 @@ const heroImages = HERO_SLIDE_NUMBERS.map((slideNumber) => projects[0].data.imag
     scroll-snap-align: start;
   }
 
+  /* Once the intro has fully handed off to Project 1 (see introHero.ts,
+     which sets this class right as that happens), this stops being a
+     valid native scroll-snap target too — scrollPaging.ts already
+     excludes it for wheel input; this covers touch/keyboard scrolling,
+     which bypass that and rely on native CSS snapping instead. */
+  :global(html.intro-arrived) .intro-spacer {
+    scroll-snap-align: none;
+  }
+
   .intro {
     position: fixed;
     top: 0;
@@ -129,71 +136,51 @@ const heroImages = HERO_SLIDE_NUMBERS.map((slideNumber) => projects[0].data.imag
     overflow: hidden;
     background: var(--color-bg);
     z-index: 20; /* above page content, below the band/name/nav (40/50) */
+    /* Not a <button>/<a>, so it doesn't pick up global.css's site-wide "+"
+       cursor on clickable elements automatically — same cursor here so
+       clicking anywhere on it to move on reads as clickable like
+       everything else. */
+    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTQgNiBMMTQgMjIgTTYgMTQgTDIyIDE0JyBmaWxsPSdub25lJyBzdHJva2U9J2JsYWNrJyBzdHJva2Utd2lkdGg9JzInIHN0cm9rZS1saW5lY2FwPSdyb3VuZCcvPjwvc3ZnPgo=')
+      14 14,
+      pointer;
   }
 
   .intro.is-done {
     visibility: hidden;
   }
 
-  /* Frame stacking for the hero gallery — same pattern as each project's
-     own gallery (ProjectEntry.astro), duplicated here since Astro scopes
-     styles per-component. Only the active frame is visible; the rest
-     stay laid out (never display: none) so their images can prefetch. */
+  /* Frame stacking for the hero gallery — soft crossfade instead of a
+     hard cut, since introHero.ts now advances these on its own timer
+     rather than a click. Every frame stays laid out (never display:
+     none) so its image can prefetch well before its turn comes up. */
   .intro .gallery__frame {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    visibility: hidden;
+    opacity: 0;
     z-index: 0;
     pointer-events: none;
+    transition: opacity 1.2s ease;
   }
 
   .intro .gallery__frame.is-active {
-    visibility: visible;
+    opacity: 1;
+    z-index: 1;
   }
 
-  /* .gallery__frame.is-active sets visibility: visible directly on
-     itself, which otherwise wins over the hidden state inherited from
-     .intro.is-done above (visibility is inherited, but a descendant's
-     own explicit value overrides it) — without this, the currently
-     shown hero image stayed stuck on screen after scrolling past it
-     into later projects, instead of actually hiding along with the rest
-     of .intro. This rule is more specific, so it wins instead, keeping
-     the active frame hidden once the intro is done. Same fix as
-     .project__gallery.is-locked uses in ProjectEntry.astro. */
+  /* Without this, the currently-showing hero image stayed visible after
+     scrolling past it into later projects, instead of hiding along with
+     the rest of .intro — same reasoning as .project__gallery.is-locked
+     in ProjectEntry.astro, just for opacity instead of visibility. */
   .intro.is-done .gallery__frame.is-active {
-    visibility: hidden;
+    opacity: 0;
   }
 
   .intro__image {
     width: 100%;
     height: 100%;
     object-fit: cover;
-  }
-
-  /* Click zones: right half advances, left half goes back — same chevron
-     cursors as every other gallery on the site. */
-  .intro .gallery__zone {
-    position: absolute;
-    inset: 0 50% 0 0;
-    background: transparent;
-    z-index: 1;
-    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTggNiBMOSAxNCBMMTggMjInIGZpbGw9J25vbmUnIHN0cm9rZT0nYmxhY2snIHN0cm9rZS13aWR0aD0nMi41JyBzdHJva2UtbGluZWNhcD0ncm91bmQnIHN0cm9rZS1saW5lam9pbj0ncm91bmQnLz48L3N2Zz4K')
-      14 14,
-      auto;
-  }
-
-  .intro .gallery__zone--next {
-    inset: 0 0 0 50%;
-    cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyOCcgaGVpZ2h0PScyOCcgdmlld0JveD0nMCAwIDI4IDI4Jz48cGF0aCBkPSdNMTAgNiBMMTkgMTQgTDEwIDIyJyBmaWxsPSdub25lJyBzdHJva2U9J2JsYWNrJyBzdHJva2Utd2lkdGg9JzIuNScgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJyBzdHJva2UtbGluZWpvaW49J3JvdW5kJy8+PC9zdmc+Cg==')
-      14 14,
-      auto;
-  }
-
-  .intro .gallery__zone:disabled {
-    cursor: default;
-    pointer-events: none;
   }
 </style>

@@ -19,13 +19,10 @@ interface Props {
   // Renders this project's gallery pre-hidden (see .is-locked below), for
   // Project 1 only — this is just the server-rendered starting state, so
   // there's no flash of it visible before introHero.ts runs. It reveals
-  // this (or moves the lock to a different project entirely — see
-  // introHero.ts) once the fullscreen intro finishes shrinking into
-  // place.
+  // this once the fullscreen intro finishes shrinking into place.
   initiallyLocked?: boolean;
-  // Anchor target for the "work" nav link (see SiteHeader.astro). Set on
-  // Project 1 at build time; introHero.ts may move it to a different
-  // project's <article> at runtime (see syncTargetToHero).
+  // Anchor target for the "work" nav link (see SiteHeader.astro), set on
+  // Project 1 only.
   id?: string;
 }
 

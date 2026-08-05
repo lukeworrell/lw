@@ -37,8 +37,17 @@
 
 const FALLBACK_COOLDOWN_MS = 2000;
 
-function getSnapPoints(): HTMLElement[] {
-  const spacer = document.querySelector<HTMLElement>('[data-intro-spacer]');
+// Once the intro has fully handed off to Project 1 (see introHero.ts,
+// which sets this class right as that happens), stepping backward no
+// longer returns to the intro spacer — only clicking the site name does.
+// Before that point (still mid-shrink), stepping back up to cancel back
+// to fullscreen is still allowed, same as always.
+function hasIntroArrived(): boolean {
+  return document.documentElement.classList.contains('intro-arrived');
+}
+
+function getSnapPoints(includeSpacer: boolean): HTMLElement[] {
+  const spacer = includeSpacer ? document.querySelector<HTMLElement>('[data-intro-spacer]') : null;
   const galleries = Array.from(document.querySelectorAll<HTMLElement>('.feed .project__gallery'));
   return [spacer, ...galleries].filter((el): el is HTMLElement => el !== null);
 }
@@ -49,7 +58,7 @@ function snapTop(el: HTMLElement): number {
 }
 
 function goToStep(direction: 1 | -1) {
-  const positions = getSnapPoints().map(snapTop);
+  const positions = getSnapPoints(direction > 0 || !hasIntroArrived()).map(snapTop);
   const current = window.scrollY;
   // A couple px of slack so floating-point/sub-pixel scroll positions
   // don't get stuck re-targeting the point they're already resting on.
