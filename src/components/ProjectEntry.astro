@@ -27,14 +27,9 @@ interface Props {
   // Project 1 at build time; introHero.ts may move it to a different
   // project's <article> at runtime (see syncTargetToHero).
   id?: string;
-  // This project's fixed position in the hero gallery (see index.astro
-  // and introHero.ts) — a stable lookup key so the currently-shown hero
-  // image can be traced back to its real feed entry regardless of how
-  // introHero.ts has since reordered .feed.
-  heroIndex: number;
 }
 
-const { project, eagerFirstImage = false, initiallyLocked = false, id, heroIndex } = Astro.props;
+const { project, eagerFirstImage = false, initiallyLocked = false, id } = Astro.props;
 const { title, meta, images, teammates } = project.data;
 const slideshowId = `slideshow-${project.id}`;
 // One-off: this slide normally shows a white "sound you can hear, feel,
@@ -62,7 +57,7 @@ const ratio =
       : 16 / 9;
 ---
 
-<article class="project" data-project data-slug={project.id} data-hero-index={heroIndex} id={id} style={`--gallery-ratio: ${ratio}`}>
+<article class="project" data-project data-slug={project.id} id={id} style={`--gallery-ratio: ${ratio}`}>
   <div class="project__label">
     <button type="button" class="project__title" data-open-slideshow={slideshowId}>
       {title}

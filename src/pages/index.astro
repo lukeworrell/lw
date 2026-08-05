@@ -17,53 +17,55 @@ const projects = workCategories.flatMap((category) =>
     .sort((a, b) => b.data.year - a.data.year),
 );
 
-// One entry per project, in the same order as the feed below — the hero
-// gallery lets you loop through each project's own first image before
-// ever scrolling. Whichever one you're looking at when you scroll away
-// becomes the project the intro shrinks into: introHero.ts moves its
-// real <article> to the front of .feed and retargets the shrink
-// animation at it, so the handoff always lands on the image that's
-// actually showing, not always Project 1.
-//
-// Temporarily limited to the first two projects (College of Architecture,
-// Bubble-vilion) — their cover images are the ones known-good right now.
-// Everything else about the loop/swipe function is unchanged; this just
-// shrinks the data set it cycles through. Change back to
-// `projects.map(...)` once the rest are ready to feature here too.
-const heroImages = projects.slice(0, 2).map((project) => project.data.images[0]);
+// The hero gallery is a curated subset of Project 1's own image deck, in
+// its normal order — not a cross-project sampler. Project 1 is always
+// whichever project sorts first above (College of Architecture), so
+// there's no per-visit selection to make: introHero.ts's shrink
+// animation targets that same project's real gallery, fixed at load.
+// Clicking past the last hero image (see introHero.ts) hands off to it
+// automatically, without waiting for a scroll.
+const HERO_SLIDE_NUMBERS = [1, 2, 3, 4, 6, 7];
+const heroImages = HERO_SLIDE_NUMBERS.map((slideNumber) => projects[0].data.images[slideNumber - 1]);
 ---
 
 <BaseLayout title="Luke Worrell — Work" deferHeaderReveal>
-  <!-- Intro: fullscreen, click-through, looping gallery of every
-       project's first image (see projectGallery.ts, which drives any
-       [data-gallery] generically — the prev/next zones and chevron
-       cursors are the same ones used by each project's own gallery). As
-       you scroll through the spacer below, introHero.ts shrinks the
-       whole thing down to exactly overlay whichever project's real
-       gallery box matches what's currently showing, then hides it —
-       handing off to that real element. See introHero.ts for how that
-       project becomes "first". -->
+  <!-- Intro: fullscreen, click-through gallery of Project 1's entire
+       image deck (see projectGallery.ts, which drives any [data-gallery]
+       generically — the prev/next zones and chevron cursors are the same
+       ones used by each project's own gallery). data-loop keeps the
+       prev/next zones live at both ends — see introHero.ts, which
+       intercepts a "next" click on the very last image to hand off to
+       Project 1 directly instead of wrapping back to the first slide.
+       Scrolling through the spacer below does the same handoff on its
+       own timeline: introHero.ts shrinks the whole thing down to exactly
+       overlay Project 1's real gallery box, then hides it. -->
   <div class="intro-spacer" data-intro-spacer aria-hidden="true"></div>
   <div class="intro gallery" data-intro data-gallery data-loop aria-hidden="true">
     {
       heroImages.map((img, i) => (
         <div class:list={['gallery__frame', { 'is-active': i === 0 }]} data-index={i}>
-          <Picture
-            src={img.src}
-            alt=""
-            formats={['avif', 'webp']}
-            widths={[480, 800, 1200, 1600, 2000, 2400]}
-            sizes="100vw"
-            loading={i === 0 ? 'eager' : 'lazy'}
-            fetchpriority={i === 0 ? 'high' : undefined}
-            decoding="async"
-            class="intro__image"
-          />
+          {'gif' in img ? (
+            <img src={img.gif} alt="" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" class="intro__image" />
+          ) : 'video' in img ? (
+            <video src={img.video} aria-label="" class="intro__image" playsinline preload="metadata" />
+          ) : (
+            <Picture
+              src={img.src}
+              alt=""
+              formats={['avif', 'webp']}
+              widths={[480, 800, 1200, 1600, 2000, 2400]}
+              sizes="100vw"
+              loading={i === 0 ? 'eager' : 'lazy'}
+              fetchpriority={i === 0 ? 'high' : undefined}
+              decoding="async"
+              class="intro__image"
+            />
+          )}
         </div>
       ))
     }
-    <button type="button" class="gallery__zone gallery__zone--prev" data-gallery-prev aria-label="Previous project" />
-    <button type="button" class="gallery__zone gallery__zone--next" data-gallery-next aria-label="Next project" />
+    <button type="button" class="gallery__zone gallery__zone--prev" data-gallery-prev aria-label="Previous image" />
+    <button type="button" class="gallery__zone gallery__zone--next" data-gallery-next aria-label="Next image" />
   </div>
 
   <div class="feed">
@@ -74,7 +76,6 @@ const heroImages = projects.slice(0, 2).map((project) => project.data.images[0])
           eagerFirstImage={i === 0}
           initiallyLocked={i === 0}
           id={i === 0 ? 'first-project' : undefined}
-          heroIndex={i}
         />
       ))
     }
